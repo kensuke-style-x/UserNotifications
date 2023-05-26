@@ -1,0 +1,78 @@
+import UIKit
+import UserNotifications
+
+class ViewController: UIViewController {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        //notification center
+        checkForNotification()
+        
+    }
+    
+    func checkForNotification(){
+        
+        let notificationCenter = UNUserNotificationCenter.current()
+        
+        notificationCenter.getNotificationSettings{ settings in
+            
+            switch settings.authorizationStatus {
+            case .authorized:
+                self.disPatchNotification()
+            case .denied:
+                return
+            case .notDetermined:
+                notificationCenter.requestAuthorization(options: [.alert, .sound ,.badge]){
+                    didAllow , error  in
+                    if didAllow {
+                        self.disPatchNotification()
+                    }
+                }
+            default:
+                return
+            }//switch
+        }//getNotificationCenterSettings
+        
+        
+        
+    }
+    
+    func disPatchNotification(){
+        
+        
+        let title = "Create Seven Star!"
+        
+        let body = "Let us Denim Coordinate!"
+        
+        //hour
+        let hour = 9
+        //minute
+        let minute = 11
+        
+        let notificationCenter = UNUserNotificationCenter.current()
+        
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .defaultCritical
+       
+        
+        let calender = Calendar.current
+        var dateComponents = DateComponents(calendar: calender , timeZone: TimeZone.current)
+        dateComponents.hour = hour
+        dateComponents.minute = minute
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        
+        let uuidString = UUID().uuidString
+        
+        let request = UNNotificationRequest(identifier: uuidString, content: content, trigger: trigger)
+        
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [uuidString])
+        notificationCenter.add(request)
+        
+    }
+
+
+}
+
