@@ -95,15 +95,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDe
         
         info.alertBody = "A new notification has been posted"
         
-//        info.shouldSendContentAvailable = true
+//      info.shouldSendContentAvailable = true
+//      info.alertLocalizationKey = "%1$@"
+//      info.alertLocalizationArgs = ["content"]
         
-//        info.titleLocalizationKey = "%1$@"
-//        info.titleLocalizationArgs = ["title"]
-//
-//        info.alertLocalizationKey = "%1$@"
-//        info.alertLocalizationArgs = ["content"]
-        
-        info.shouldBadge = true
+//      info.shouldBadge = true
         
         info.soundName = "default"
         
