@@ -1,0 +1,129 @@
+import UIKit
+import UserNotifications
+import CloudKit
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDelegate {
+
+    var window: UIWindow?
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Override point for customization after application launch.
+        
+        let center = UNUserNotificationCenter.current()
+        
+        center.delegate = self
+        
+        center.requestAuthorization(options: [.badge]){
+            (granted, _) in
+            if granted {
+               
+            
+            }
+        
+        
+        }
+        
+        //push notification
+        UIApplication.shared.registerForRemoteNotifications()
+    
+        
+        
+//        let yesAction = UNNotificationAction(identifier: "yes", title: "Yes",options: [])
+//
+//        let runNotificationCategory = UNNotificationCategory(identifier: "RunNotification", actions: [yesAction], intentIdentifiers: [], options: [])
+//
+//        center.setNotificationCategories([runNotificationCategory])
+
+        
+        return true
+    }
+    
+    
+    
+    //Banner
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+
+
+        completionHandler([.banner,.sound])
+    }
+    
+    
+    //Response
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        
+        
+        self.window = UIWindow(frame: UIScreen.main.bounds)
+
+        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
+
+        let initialViewController = storyBoard.instantiateViewController(identifier: "Second")
+
+        self.window?.rootViewController = initialViewController
+
+        self.window?.makeKeyAndVisible()
+        
+        
+//        switch response.actionIdentifier{
+//
+//        case "yes":
+//
+//        default :
+//            return
+//
+//        }
+        completionHandler()
+    }
+    
+    //push notification * CloudKit
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        //device Token
+        //        let token = deviceToken.map{ String(format: "%.2hhx", $0) }.joined()
+        //        print("Device Token: \(String(describing: token))")
+        
+        //Cloudkit [Subscriptions]
+        
+        //        guard !UserDefaults.standard.bool(forKey: "didCreateQuerySubscription")
+        //        else {return}
+        
+        let predicate = NSPredicate(format: "TRUEPREDICATE")
+        
+        let subscription = CKQuerySubscription(recordType: "Notifications", predicate:predicate, options: [.firesOnRecordUpdate,.firesOnRecordCreation,.firesOnRecordDeletion ])
+        
+        
+        let info = CKSubscription.NotificationInfo()
+        
+        info.alertBody = "A new notification has been posted"
+        
+//        info.shouldSendContentAvailable = true
+        
+//        info.titleLocalizationKey = "%1$@"
+//        info.titleLocalizationArgs = ["title"]
+//
+//        info.alertLocalizationKey = "%1$@"
+//        info.alertLocalizationArgs = ["content"]
+        
+        info.shouldBadge = true
+        
+        info.soundName = "default"
+        
+        subscription.notificationInfo = info
+        
+        CKContainer.default().publicCloudDatabase.save(subscription, completionHandler: { subscription, error in
+            
+            if error == nil {
+                
+            }else {
+                
+            }
+        })
+        
+        
+    }
+        
+    
+    
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("(error.localizedDescription")
+    }
+}
