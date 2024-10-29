@@ -48,7 +48,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDe
     
     //Response
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        
+
+        //website 
+
+         if let urlString = response.notification.request.content.userInfo["url"] as? String,
+           let url = URL(string: urlString){
+            UIApplication.shared.open(url)
+        }
+  
 //        switch response.actionIdentifier{
 //
 //        case "yes":
@@ -57,6 +64,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDe
 //            return
 //
 //        }
+
+
         completionHandler()
     }
     
