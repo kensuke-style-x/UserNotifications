@@ -1,5 +1,6 @@
 import UIKit
 import UserNotifications
+import CloudKit
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDelegate {
@@ -16,15 +17,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDe
         center.requestAuthorization(options: [.badge]){
             (granted, _) in
             if granted {
-                
+                DispatchQueue.main.async{
+                  //push notification
+                    UIApplication.shared.registerForRemoteNotifications()
+                    }
+        
             }
         
         
         }
         
-        //push notification
-            UIApplication.shared.registerForRemoteNotifications()
-        
+      
         
 //        let yesAction = UNNotificationAction(identifier: "yes", title: "Yes",options: [])
 //
@@ -74,6 +77,50 @@ class AppDelegate: UIResponder, UIApplicationDelegate,UNUserNotificationCenterDe
         
         let token = deviceToken.map{ String(format: "%.2hhx", $0) }.joined()
         print("Device Token: \(String(describing: token))")
+
+       //save device token to Cloudkit
+        saveDeviceTokentoCloudkit(token)
+        
+    }
+
+    func saveDeviceTokentoCloudkit(_ token: String){
+       
+        let container = CKContainer.default()
+        
+        container.fetchUserRecordID{ userRecordID, error in
+            
+            guard let userRecordID = userRecordID,error == nil else {
+                
+                print("Failed to fetch userRecordID...")
+                
+                return
+            }
+            
+            let userReference = CKRecord.Reference(recordID: userRecordID, action: .none)
+           
+            let recordID = CKRecord.ID(recordName: UUID().uuidString)
+                
+            let record = CKRecord(recordType: "Notifications")
+                 
+                record["owner"] = userReference
+            
+                record["deviceToken"] = token as CKRecordValue
+            
+                record["Date"] = Date() as CKRecordValue
+                
+                container.publicCloudDatabase.save(record) { savedRecord, saveError in
+                    
+                    if let saveError = saveError {
+                        print("Failed to save device token...\(saveError.localizedDescription)")
+                    } else {
+                        
+                        print("Device token is successfully saved to cloudkit.")
+                    }
+                }
+            
+        }
+        
+        
         
     }
     
