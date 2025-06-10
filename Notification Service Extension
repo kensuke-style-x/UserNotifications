@@ -1,0 +1,81 @@
+import UserNotifications
+
+class NotificationService: UNNotificationServiceExtension {
+
+    var contentHandler: ((UNNotificationContent) -> Void)?
+    var bestAttemptContent: UNMutableNotificationContent?
+
+    override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+        
+        self.contentHandler = contentHandler
+        
+        bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
+        
+        guard let bestAttemptContent = bestAttemptContent else {
+            return
+        }
+        
+        //        if let bestAttemptContent = bestAttemptContent {
+        //            // Modify the notification content here...
+        //            bestAttemptContent.title = "\(bestAttemptContent.title) [modified]"
+        //
+        //            contentHandler(bestAttemptContent)
+        //        }
+            
+        //attach imageurl 
+        if let imageURLString = bestAttemptContent.userInfo["image-url"] as? String, let imageURL = URL(string:imageURLString){
+            
+            downloadImageFrom(url:imageURL){ attachment in
+                
+                if let attachment = attachment {
+                    bestAttemptContent.attachments = [attachment]
+                    
+                    
+                }
+                contentHandler(bestAttemptContent)
+            }
+        } else {
+                contentHandler(bestAttemptContent)
+            }
+        
+    }
+     
+    
+    private func downloadImageFrom(url:URL, completion: @escaping(UNNotificationAttachment?) -> Void){
+        
+        let task = URLSession.shared.downloadTask(with: url) { (downloadedUrl, _, error) in
+            
+            guard let downloadedUrl = downloadedUrl else {
+                print("Downloading image is error...\(error!.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            let tmpDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
+            let tmpFile = tmpDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+            do {
+                try FileManager.default.moveItem(at: downloadedUrl, to: tmpFile)
+                
+                let attachment = try UNNotificationAttachment(identifier: "image", url: tmpFile,options: nil)
+                completion(attachment)
+            } catch {
+                print("Failed to create attachment...\(error.localizedDescription)")
+                completion(nil)
+            }
+        }
+        
+        task.resume()
+        
+    }
+        
+
+    
+    override func serviceExtensionTimeWillExpire() {
+        // Called just before the extension will be terminated by the system.
+        // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
+        if let contentHandler = contentHandler, let bestAttemptContent =  bestAttemptContent {
+            contentHandler(bestAttemptContent)
+        }
+    }
+
+}
