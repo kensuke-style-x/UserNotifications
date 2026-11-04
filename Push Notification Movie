@@ -1,0 +1,115 @@
+import UserNotifications
+
+class NotificationService: UNNotificationServiceExtension {
+
+    var contentHandler: ((UNNotificationContent) -> Void)?
+    var bestAttemptContent: UNMutableNotificationContent?
+
+    override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+        
+        self.contentHandler = contentHandler
+        
+        bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
+        
+        guard let bestAttemptContent = bestAttemptContent else {
+            contentHandler(request.content)
+            return
+        }
+        
+        //        if let bestAttemptContent = bestAttemptContent {
+        //            // Modify the notification content here...
+        //            bestAttemptContent.title = "\(bestAttemptContent.title) [modified]"
+        //
+        //            contentHandler(bestAttemptContent)
+        //        }
+            
+        
+        guard let fileURLString = bestAttemptContent.userInfo["url"] as? String, let fileURL = URL(string:fileURLString) else {
+            contentHandler(bestAttemptContent)
+            return
+        }
+            
+            downloadFashionistar(url:fileURL){ attachment in
+                
+                if let attachment = attachment {
+                    bestAttemptContent.attachments = [attachment]
+                    
+                }
+                
+                contentHandler(bestAttemptContent)
+            }
+        
+        
+        }
+     
+    
+    private func downloadFashionistar(url:URL, completion: @escaping(UNNotificationAttachment?) -> Void){
+        
+        let task = URLSession.shared.downloadTask(with: url) { (downloadedUrl, response, error) in
+            
+            guard let downloadedUrl = downloadedUrl else {
+                print("Downloading image is error...\(error!.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            var fileExtension = url.pathExtension.lowercased()
+            
+            if fileExtension.isEmpty, let fileType = response?.mimeType{
+                
+                switch fileType{
+                    
+                case "image/jpeg":
+                    fileExtension = "jpg"
+                    
+                case "image/png":
+                    fileExtension = "png"
+                
+                case "image/gif":
+                    fileExtension = "gif"
+                    
+                case "video/mp4":
+                    fileExtension = "mp4"
+                    
+                case "video/quicktime":
+                    fileExtension = "mov"
+                 
+                default:
+                    completion(nil)
+                    return
+                    
+                }
+            }
+            
+            let tmpDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
+            
+            let tmpFile = tmpDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(fileExtension)
+            
+            do {
+                try FileManager.default.moveItem(at: downloadedUrl, to: tmpFile)
+                
+                let attachment = try UNNotificationAttachment(identifier: "media", url: tmpFile,options: nil)
+                
+                completion(attachment)
+                
+            } catch {
+                print("Failed to create attachment...\(error.localizedDescription)")
+                completion(nil)
+            }
+        }
+        
+        task.resume()
+        
+    }
+        
+
+    
+    override func serviceExtensionTimeWillExpire() {
+        // Called just before the extension will be terminated by the system.
+        // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
+        if let contentHandler = contentHandler, let bestAttemptContent =  bestAttemptContent {
+            contentHandler(bestAttemptContent)
+        }
+    }
+
+}
